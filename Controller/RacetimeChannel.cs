@@ -343,7 +343,7 @@ start:
                     if ((r == RaceState.Open || r == RaceState.OpenInviteOnly) && nr == RaceState.Starting)
                     {
                         m.Reset();
-                        m.Start(DateTime.UtcNow - msg.Race.StartedAt);
+                        m.Start();
                     }
 
                     //the race is already running and we're not finished, sync the timer
@@ -354,7 +354,7 @@ start:
                         if (m.CurrentState.CurrentPhase == TimerPhase.Paused)
                             m.Pause();
                         if (m.CurrentState.CurrentPhase == TimerPhase.NotRunning)
-                            m.Start(DateTime.UtcNow - msg.Race.StartedAt);
+                            m.Start();
                     }
                 }                      
             }
