@@ -342,7 +342,6 @@ start:
                     //the race is starting
                     if ((r == RaceState.Open || r == RaceState.OpenInviteOnly) && nr == RaceState.Starting)
                     {
-                        m.Reset();
                         m.Start();
                     }
 
