@@ -342,15 +342,12 @@ start:
                     //the race is starting
                     if ((r == RaceState.Open || r == RaceState.OpenInviteOnly) && nr == RaceState.Starting)
                     {
-                        m.CurrentState.Run.Offset = DateTime.UtcNow - msg.Race.StartedAt;
-                        m.Reset();
                         m.Start();
                     }
 
                     //the race is already running and we're not finished, sync the timer
                     if(nr == RaceState.Started && nu == UserStatus.Racing)
                     {
-                        m.CurrentState.Run.Offset = DateTime.UtcNow - msg.Race.StartedAt;
                         if (m.CurrentState.CurrentPhase == TimerPhase.Ended)
                             m.UndoSplit();
                         if (m.CurrentState.CurrentPhase == TimerPhase.Paused)
@@ -358,25 +355,6 @@ start:
                         if (m.CurrentState.CurrentPhase == TimerPhase.NotRunning)
                             m.Start();
                     }
-
-                    if(u != nu && nu == UserStatus.Finished)
-                    {
-                        m.Split();
-                    }
-
-                    if (u != nu && nu == UserStatus.Forfeit)
-                    {
-                        m.Reset();
-                    }
-                    if (u != nu && nu == UserStatus.Disqualified)
-                    {
-                        m.Reset();
-                    }
-
-                    if (r != nr && nr == RaceState.Cancelled)
-                    {
-                        m.Reset();
-                    }                    
                 }                      
             }
 
