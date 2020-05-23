@@ -191,9 +191,6 @@
   <data name="OAUTH_SERVER" xml:space="preserve">
     <value>https://racetime.gg/</value>
   </data>
-  <data name="PLUGIN_VERSION" xml:space="preserve">
-    <value>1.1</value>
-  </data>
   <data name="PROTOCOL_REST" xml:space="preserve">
     <value>https</value>
     <comment>http or https</comment>
@@ -201,11 +198,5 @@
   <data name="PROTOCOL_WEBSOCKET" xml:space="preserve">
     <value>wss</value>
     <comment>ws or wss</comment>
-  </data>
-  <data name="UPDATE_DATA" xml:space="preserve">
-    <value>https://github.com/steto-scope/LiveSplit.Racetime/releases/download/</value>
-  </data>
-  <data name="UPDATE_DEFINITION" xml:space="preserve">
-    <value>https://raw.githubusercontent.com/steto-scope/LiveSplit.Racetime/stable/update.racetime.xml</value>
   </data>
 </root>
