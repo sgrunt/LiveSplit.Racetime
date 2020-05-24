@@ -342,7 +342,14 @@ start:
                     //the race is starting
                     if ((r == RaceState.Open || r == RaceState.OpenInviteOnly) && nr == RaceState.Starting)
                     {
-                        m.Start();
+                        if (DateTime.UtcNow >= msg.Race.StartedAt)
+                        {
+                            m.Start();
+                        }
+                        else
+                        {
+                            delayStart(m, msg.Race.StartedAt - DateTime.UtcNow);
+                        }
                     }
 
                     //the race is already running and we're not finished, sync the timer
@@ -362,6 +369,12 @@ start:
             RaceChanged?.Invoke(this, new EventArgs());
             UserListRefreshed?.Invoke(this, new EventArgs());
             GoalChanged?.Invoke(this, new EventArgs());
+        }
+
+        private async void delayStart(ITimerModel timer, TimeSpan delay)
+        {
+            await Task.Delay(delay);
+            timer.Start();
         }
 
         public IEnumerable<ChatMessage> Parse(dynamic m)
