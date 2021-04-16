@@ -30,8 +30,18 @@ namespace LiveSplit.Racetime.View
 
         private void Channel_RaceChanged(object sender, EventArgs e)
         {
-            Text = $"{Channel.Race.Goal} [{Channel.Race.GameName}] - {Channel.Race.ChannelName}";
-            chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit");
+            try
+            {
+                if (!IsDisposed)
+                {
+                    Text = $"{Channel.Race.Goal} [{Channel.Race.GameName}] - {Channel.Race.ChannelName}";
+                    if (chatBox.IsBrowserInitialized == true)
+                    {
+                        chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit");
+                    }
+                }
+            }
+            catch { }
         }
 
         private void Channel_Authorized(object sender, EventArgs e)
