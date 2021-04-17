@@ -34,19 +34,7 @@ namespace LiveSplit.Racetime.View
         {
             try
             {
-                if (!IsDisposed)
-                {
-                    Text = $"{Channel.Race.Goal} [{Channel.Race.GameName}] - {Channel.Race.ChannelName}";
-                    if (chatBox.IsBrowserInitialized == true)
-                    {
-                        new Thread(() =>
-                        {
-                            Thread.CurrentThread.IsBackground = true;
-                            chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
-                            chatBox.BeginInvoke((Action)(() => chatBox.Show()));
-                        }).Start();
-                    }
-                }
+                Text = $"{Channel.Race.Goal} [{Channel.Race.GameName}] - {Channel.Race.ChannelName}";
             }
             catch { }
         }
@@ -54,6 +42,23 @@ namespace LiveSplit.Racetime.View
         private void Channel_Authorized(object sender, EventArgs e)
         {
             Focus();
+            try
+            {
+                if (!IsDisposed)
+                {
+                    if (chatBox.IsBrowserInitialized == true)
+                    {
+                        new Thread(() =>
+                        {
+                            Thread.CurrentThread.IsBackground = true;
+                            System.Threading.Thread.Sleep(1000);
+                            chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                            chatBox.BeginInvoke((Action)(() => chatBox.Show()));
+                        }).Start();
+                    }
+                }
+            }
+            catch { }
         }
 
         private void Channel_Disconnected(object sender, EventArgs e)
