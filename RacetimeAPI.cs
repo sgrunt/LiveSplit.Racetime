@@ -96,8 +96,17 @@ namespace LiveSplit.Racetime
                 var races = data.races;
                 foreach (var r in races)
                 {
-                    var fulldata = JSON.FromUri(new Uri(BaseUri.AbsoluteUri + r.name + "/data"));
-                    Race raceObj = RTModelBase.Create<Race>(fulldata);
+                    Race raceObj;
+                    //if (Races == null)
+                    //{
+                    r.entrants = new List<dynamic>();
+                    raceObj = RTModelBase.Create<Race>(r);
+                    //}
+                    //else
+                    //{
+                    //    var fulldata = JSON.FromUri(new Uri(BaseUri.AbsoluteUri + r.name + "/data"));
+                    //    raceObj = RTModelBase.Create<Race>(fulldata);
+                    //}
                     yield return raceObj;
                 }
                 yield break;

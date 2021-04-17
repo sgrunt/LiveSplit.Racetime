@@ -27,6 +27,18 @@ namespace LiveSplit.Racetime.View
             Channel.Connect(channelId);
             chatBox.LifeSpanHandler = new ChatBoxLifeSpanHandler();
             chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token);
+            chatBox.AddressChanged += OnBrowserAddressChanged;
+        }
+        private void OnBrowserAddressChanged(object sender, AddressChangedEventArgs e)
+        {
+            if (chatBox.Address != Channel.FullWebRoot + Channel.Race.Id + "/livesplit")
+            {
+                Channel_RaceChanged(null, null);
+            }
+            else
+            {
+                chatBox.BeginInvoke((Action)(() => chatBox.Show()));
+            }
         }
 
 
@@ -34,31 +46,29 @@ namespace LiveSplit.Racetime.View
         {
             try
             {
-                Text = $"{Channel.Race.Goal} [{Channel.Race.GameName}] - {Channel.Race.ChannelName}";
-            }
-            catch { }
-        }
-
-        private void Channel_Authorized(object sender, EventArgs e)
-        {
-            Focus();
-            try
-            {
                 if (!IsDisposed)
                 {
+                    Text = $"{Channel.Race.Goal} [{Channel.Race.GameName}] - {Channel.Race.ChannelName}";
+
                     if (chatBox.IsBrowserInitialized == true)
                     {
                         new Thread(() =>
                         {
                             Thread.CurrentThread.IsBackground = true;
                             System.Threading.Thread.Sleep(1000);
+                            chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token)));
                             chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
-                            chatBox.BeginInvoke((Action)(() => chatBox.Show()));
                         }).Start();
                     }
                 }
             }
             catch { }
+        }
+
+        private void Channel_Authorized(object sender, EventArgs e)
+        {
+            chatBox.BeginInvoke((Action)(() => Focus()));
+
         }
 
         private void Channel_Disconnected(object sender, EventArgs e)
