@@ -378,8 +378,12 @@ namespace LiveSplit.Racetime.Controller
                     {
                         if (m.CurrentState.CurrentPhase == TimerPhase.Ended)
                         {
-                            m.UndoSplit();
-                            m.CurrentState.CurrentSplitIndex = current_split;
+                            try
+                            {
+                                m.UndoSplit();
+                                m.CurrentState.CurrentSplitIndex = current_split;
+                            }
+                            catch { }
                         }
                         else if (m.CurrentState.CurrentPhase == TimerPhase.Paused)
                             m.Pause();
@@ -406,11 +410,15 @@ namespace LiveSplit.Racetime.Controller
                         m.CurrentState.Run.Offset = Race.StartDelay.Negate();
                         m.CurrentState.AdjustedStartTime = TimeStamp.Now - m.CurrentState.Run.Offset;
                     }
-                    else if (nr == RaceState.Started && (nu == UserStatus.Finished && u == UserStatus.Racing))
+                    else if (nr == RaceState.Started && ((nu == UserStatus.Finished || nu == UserStatus.Forfeit) && (u == UserStatus.Racing || u == UserStatus.Finished)))
                     {
-                        current_split = m.CurrentState.CurrentSplitIndex;
-                        for (int i = 0; i < 300; i++)
-                            m.SkipSplit();
+                        try
+                        {
+                            current_split = m.CurrentState.CurrentSplitIndex;
+                            for (int i = 0; i < 300; i++)
+                                m.SkipSplit();
+                        }
+                        catch { }
                         m.Split();
                     }
                 }
