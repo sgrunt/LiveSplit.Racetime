@@ -4,6 +4,7 @@ using DarkUI.Forms;
 using LiveSplit.Racetime.Controller;
 using LiveSplit.Racetime.Model;
 using System;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace LiveSplit.Racetime.View
@@ -38,8 +39,12 @@ namespace LiveSplit.Racetime.View
                     Text = $"{Channel.Race.Goal} [{Channel.Race.GameName}] - {Channel.Race.ChannelName}";
                     if (chatBox.IsBrowserInitialized == true)
                     {
-                        chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit");
-                        chatBox.Show();
+                        new Thread(() =>
+                        {
+                            Thread.CurrentThread.IsBackground = true;
+                            chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                            chatBox.BeginInvoke((Action)(() => chatBox.Show()));
+                        }).Start();
                     }
                 }
             }
