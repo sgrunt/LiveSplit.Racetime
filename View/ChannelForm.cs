@@ -21,6 +21,7 @@ namespace LiveSplit.Racetime.View
             InitializeComponent();
             TopMost = alwaysOnTop;
             Show();
+            chatBox.Hide();
             Text = "Connecting to " + channelId.Substring(channelId.IndexOf('/') + 1);
             Channel.Connect(channelId);
             chatBox.LifeSpanHandler = new ChatBoxLifeSpanHandler();
@@ -38,6 +39,7 @@ namespace LiveSplit.Racetime.View
                     if (chatBox.IsBrowserInitialized == true)
                     {
                         chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit");
+                        chatBox.Show();
                     }
                 }
             }
