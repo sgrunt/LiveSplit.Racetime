@@ -143,6 +143,7 @@ namespace LiveSplit.Racetime.Model
                 switch (Data.status.value)
                 {
                     case "open": return RaceState.Open;
+                    case "invitational": return RaceState.OpenInviteOnly;
                     case "pending": return RaceState.Starting;
                     case "in_progress": return RaceState.Started;
                     case "finished": return RaceState.Ended;
@@ -206,7 +207,7 @@ namespace LiveSplit.Racetime.Model
 
         public int Starttime => StartedAt == DateTime.MaxValue ? 0 : (int)(StartedAt - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
 
-        int IRaceInfo.State => State == RaceState.Open ? 1 : (State == RaceState.Started ? 3 : 42);
+        int IRaceInfo.State => (State == RaceState.Open || State == RaceState.OpenInviteOnly) ? 1 : (State == RaceState.Started ? 3 : 42);
 
 
         public bool IsParticipant(string username)
