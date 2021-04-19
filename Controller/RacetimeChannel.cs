@@ -43,7 +43,6 @@ namespace LiveSplit.Racetime.Controller
         public bool IsConnected { get; set; }
         public RacetimeSettings Settings { get; set; }
         public string OpenedBy { get; set; }
-        public List<string> Monitors = new List<string>();
         public string Username { get; set; }
         public bool Invited = false;
         public TimeSpan Offset { get; set; }
@@ -69,14 +68,6 @@ namespace LiveSplit.Racetime.Controller
             Model.Pause();
         }
 
-        private async void Reconnect()
-        {
-            if (ConnectionError >= 0 && Race != null && !RacetimeAPI.Instance.Authenticator.IsAuthorizing)
-            {
-                Connect(Race.Id);
-            }
-        }
-
         protected UserStatus GetPersonalStatus(Race race)
         {
             var u = race?.Entrants?.FirstOrDefault(x => x.Name.ToLower() == RacetimeAPI.Instance.Authenticator.Identity?.Name.ToLower());
@@ -88,7 +79,7 @@ namespace LiveSplit.Racetime.Controller
         private async Task<bool> ReceiveAndProcess()
         {
             WebSocketReceiveResult result;
-            string msg = "";
+            string msg;
             byte[] buf = new byte[bufferSize];
 
             try
@@ -96,8 +87,6 @@ namespace LiveSplit.Racetime.Controller
                 int maxBufferSize = RacetimeChannel.maxBufferSize;
                 int read = 0;
                 int free = buf.Length;
-
-
                 do
                 {
                     if (free < 1)
@@ -127,10 +116,7 @@ namespace LiveSplit.Racetime.Controller
             catch (InternalBufferOverflowException)
             {
                 //flush socket
-                while (!(result = await ws?.ReceiveAsync(new ArraySegment<byte>(buf, 0, buf.Length), websocket_cts?.Token ?? CancellationToken.None)).EndOfMessage)
-                    ;
-
-                SendSystemMessage("Content too large to load");
+                while (!(result = await ws?.ReceiveAsync(new ArraySegment<byte>(buf, 0, buf.Length), websocket_cts?.Token ?? CancellationToken.None)).EndOfMessage) ;
                 return false;
             }
             catch
@@ -138,52 +124,20 @@ namespace LiveSplit.Racetime.Controller
                 return false;
             }
 
-            RawMessageReceived?.Invoke(this, msg);
-
             IEnumerable<ChatMessage> chatmessages = Parse(JSON.FromString(msg));
-
-
-            ChatMessage racemessage = chatmessages.FirstOrDefault(x => x.Type == MessageType.Race);
-            if (racemessage != null)
+            foreach (var racemessage in chatmessages)
             {
-                if (racemessage.Data["monitors"] != null)
+                try
                 {
-                    var monitors = racemessage.Data["monitors"];
-                    Monitors.Clear();
-                    foreach (var usr in monitors)
+                    if (racemessage.Type != MessageType.Race)
                     {
-                        Monitors.Add(usr["name"]);
+                        continue;
                     }
-                    foreach (var usr in racemessage.Data["entrants"])
-                    {
-                        if (usr["user"]["name"] == Username)
-                        {
-                            if (usr["actions"].Contains("accept_invite"))
-                            {
-                                Invited = true;
-                                break;
-                            }
-                        }
-                    }
-                    Monitors.Add(racemessage.Data["opened_by"]["name"]);
-                    OpenedBy = racemessage.Data["opened_by"]["name"];
+                    UpdateRaceData((RaceMessage)racemessage);
+                    MessageReceived?.Invoke(this, chatmessages);
                 }
-
-                UpdateRaceData((RaceMessage)racemessage);
+                catch { }
             }
-
-            var errormsg = chatmessages.FirstOrDefault(x => x.Type == MessageType.Error)?.Message;
-            if (errormsg != null && string.Join("", errormsg).Contains("Permission denied"))
-            {
-                ForceReload();
-                return true;
-            }
-            else if (errormsg != null)
-            {
-                StateChanged?.Invoke(this, Race.State);
-                UserListRefreshed?.Invoke(this, new EventArgs());
-            }
-            MessageReceived?.Invoke(this, chatmessages);
             return true;
         }
 
@@ -329,24 +283,10 @@ namespace LiveSplit.Racetime.Controller
             Disconnected?.Invoke(this, new EventArgs());
         }
 
-        public async void ForceReload()
-        {
-            if (IsConnected && ws != null)
-            {
-                ArraySegment<byte> otherBytesToSend = new ArraySegment<byte>(Encoding.UTF8.GetBytes("{ \"action\":\"gethistory\" }"));
-                ws.SendAsync(otherBytesToSend, WebSocketMessageType.Text, true, CancellationToken.None);
-                await ReceiveAndProcess();
-            }
-        }
-
         public int current_split = 0;
 
         private void UpdateRaceData(RaceMessage msg)
         {
-            //safety check, this shouldn't happen
-            if (RacetimeAPI.Instance.Authenticator.Identity == null)
-                return;
-
             //ignore double tap prevention when updating race data
             var m = Model;
             if (m is DoubleTapPrevention)
@@ -430,12 +370,6 @@ namespace LiveSplit.Racetime.Controller
             GoalChanged?.Invoke(this, new EventArgs());
         }
 
-        private async void delayStart(ITimerModel timer, TimeSpan delay)
-        {
-            await Task.Delay(delay);
-            timer.Start();
-        }
-
         public IEnumerable<ChatMessage> Parse(dynamic m)
         {
             switch (m.type)
@@ -445,12 +379,6 @@ namespace LiveSplit.Racetime.Controller
                     break;
                 case "race.data":
                     yield return RTModelBase.Create<RaceMessage>(m.race);
-                    break;
-                case "chat.delete":
-                    DeletedMessage?.Invoke(this, m.delete);
-                    break;
-                case "chat.purge":
-                    PurgedMessage?.Invoke(this, m.purge);
                     break;
                 case "chat.message":
                     if (m.message.is_system != null && m.message.is_system)
@@ -590,10 +518,6 @@ namespace LiveSplit.Racetime.Controller
             }
         }
 
-        public void RemoveRaceComparisons()
-        {
-
-        }
 
         private Regex cmdRegex = new Regex(@"^\.([a-z]+)\s*?(.+)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
