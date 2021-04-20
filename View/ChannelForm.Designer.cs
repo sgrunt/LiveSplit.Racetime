@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.chatBox = new CefSharp.WinForms.ChromiumWebBrowser();
-            this.label1 = new System.Windows.Forms.Label();
+            this.loadMessage = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // chatBox
@@ -41,20 +41,20 @@
             this.chatBox.Size = new System.Drawing.Size(1145, 619);
             this.chatBox.TabIndex = 1;
             // 
-            // label1
+            // loadMessage
             // 
-            this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-            | System.Windows.Forms.AnchorStyles.Left)
+            this.loadMessage.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.label1.AutoSize = true;
-            this.label1.Cursor = System.Windows.Forms.Cursors.AppStarting;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 50F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(409, 277);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(326, 76);
-            this.label1.TabIndex = 2;
-            this.label1.Text = "Loading...";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.loadMessage.AutoSize = true;
+            this.loadMessage.Cursor = System.Windows.Forms.Cursors.AppStarting;
+            this.loadMessage.Font = new System.Drawing.Font("Microsoft Sans Serif", 50F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.loadMessage.Location = new System.Drawing.Point(409, 277);
+            this.loadMessage.Name = "loadMessage";
+            this.loadMessage.Size = new System.Drawing.Size(326, 76);
+            this.loadMessage.TabIndex = 2;
+            this.loadMessage.Text = "Loading...";
+            this.loadMessage.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // ChannelForm
             // 
@@ -62,7 +62,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1145, 619);
             this.Controls.Add(this.chatBox);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.loadMessage);
             this.MinimumSize = new System.Drawing.Size(600, 400);
             this.Name = "ChannelForm";
             this.ShowIcon = false;
@@ -75,6 +75,6 @@
 
         #endregion
         private CefSharp.WinForms.ChromiumWebBrowser chatBox;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label loadMessage;
     }
 }

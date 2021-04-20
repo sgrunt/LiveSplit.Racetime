@@ -29,15 +29,31 @@ namespace LiveSplit.Racetime.View
             chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token);
             chatBox.AddressChanged += OnBrowserAddressChanged;
         }
+        private int retries = 0;
+        private DateTime LastRetry = DateTime.Now;
         private void OnBrowserAddressChanged(object sender, AddressChangedEventArgs e)
         {
             if (chatBox.Address != Channel.FullWebRoot + Channel.Race.Id + "/livesplit")
             {
-                Channel_RaceChanged(null, null);
+                if (retries >= 5)
+                {
+                    loadMessage.BeginInvoke((Action)(() => loadMessage.Text = "Error loading page."));
+                    chatBox = null;
+                }
+                else
+                {
+                    Channel_RaceChanged(null, null);
+                }
+                if (LastRetry.AddSeconds(10) >= DateTime.Now)
+                {
+                    LastRetry = DateTime.Now;
+                    retries++;
+                }
             }
             else
             {
                 chatBox.BeginInvoke((Action)(() => chatBox.Show()));
+                retries = 0;
             }
         }
 
@@ -55,9 +71,12 @@ namespace LiveSplit.Racetime.View
                         new Thread(() =>
                         {
                             Thread.CurrentThread.IsBackground = true;
-                            System.Threading.Thread.Sleep(1000);
-                            chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token)));
-                            chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                            System.Threading.Thread.Sleep(3000);
+                            if (retries <= 5)
+                            {
+                                chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token)));
+                                chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                            }
                         }).Start();
                     }
                 }
