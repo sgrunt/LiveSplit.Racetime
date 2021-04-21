@@ -75,7 +75,7 @@ namespace LiveSplit.Racetime.Controller
                 return UserStatus.Unknown;
             return u.Status;
         }
-
+        private List<int> Versions = new List<int>();
         private async Task<bool> ReceiveAndProcess()
         {
             WebSocketReceiveResult result;
@@ -125,19 +125,33 @@ namespace LiveSplit.Racetime.Controller
             }
 
             IEnumerable<ChatMessage> chatmessages = Parse(JSON.FromString(msg));
-            foreach (var racemessage in chatmessages)
+            try
             {
-                try
+                ChatMessage racemessage;
+                if (chatmessages.Count() > 1)
+                {
+                    racemessage = chatmessages.OrderByDescending(x => x.Data.version).FirstOrDefault();
+                }
+                else
+                {
+                    racemessage = chatmessages.FirstOrDefault();
+                }
+
+                if (racemessage != null)
                 {
                     if (racemessage.Type != MessageType.Race)
                     {
-                        continue;
+                        return false;
                     }
-                    UpdateRaceData((RaceMessage)racemessage);
-                    MessageReceived?.Invoke(this, chatmessages);
+                    if (!Versions.Contains(racemessage.Data.version))
+                    {
+                        Versions.Add(racemessage.Data.version);
+                        UpdateRaceData((RaceMessage)racemessage);
+                        MessageReceived?.Invoke(this, chatmessages);
+                    }
                 }
-                catch { }
             }
+            catch { }
             return true;
         }
 
@@ -320,8 +334,8 @@ namespace LiveSplit.Racetime.Controller
                         {
                             try
                             {
-                                m.UndoSplit();
                                 m.CurrentState.CurrentSplitIndex = current_split;
+                                m.UndoSplit();
                             }
                             catch { }
                         }
@@ -379,50 +393,6 @@ namespace LiveSplit.Racetime.Controller
                     break;
                 case "race.data":
                     yield return RTModelBase.Create<RaceMessage>(m.race);
-                    break;
-                case "chat.message":
-                    if (m.message.is_system != null && m.message.is_system)
-                        yield return RTModelBase.Create<SystemMessage>(m.message);
-                    else
-                    {
-                        bool isBot;
-                        try
-                        {
-                            isBot = m.message.is_bot;
-                        }
-                        catch
-                        {
-                            isBot = false;
-                        }
-                        if (isBot)
-                            yield return RTModelBase.Create<BotMessage>(m.message);
-                        else
-                            yield return RTModelBase.Create<UserMessage>(m.message);
-                    }
-                    break;
-                case "chat.history":
-                    RequestOutputReset?.Invoke(this, new EventArgs());
-                    foreach (var msg in m.messages)
-                    {
-                        if (msg.is_system != null && msg.is_system)
-                            yield return RTModelBase.Create<SystemMessage>(msg);
-                        else
-                        {
-                            bool isBot = false;
-                            try
-                            {
-                                isBot = msg.is_bot;
-                            }
-                            catch
-                            {
-                                isBot = false;
-                            }
-                            if (isBot)
-                                yield return RTModelBase.Create<BotMessage>(msg);
-                            else
-                                yield return RTModelBase.Create<UserMessage>(msg);
-                        }
-                    }
                     break;
                 case "livesplit":
                     yield return RTModelBase.Create<LiveSplitMessage>(m.message);

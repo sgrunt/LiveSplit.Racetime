@@ -42,6 +42,7 @@ namespace LiveSplit.Racetime.View
                 }
                 else
                 {
+                    chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token)));
                     Channel_RaceChanged(null, null);
                 }
                 if (LastRetry.AddSeconds(10) >= DateTime.Now)
@@ -146,7 +147,7 @@ namespace LiveSplit.Racetime.View
             if (!string.IsNullOrEmpty(_token))
             {
                 var headers = request.Headers;
-                if (request.Url.Contains(Properties.Resources.PROTOCOL_REST + "://" + Properties.Resources.DOMAIN))
+                if (request.Url.ToLower().Contains(Properties.Resources.PROTOCOL_REST.ToLower() + "://" + Properties.Resources.DOMAIN.ToLower()))
                     headers["Authorization"] = $"Bearer {_token}";
                 request.Headers = headers;
                 return CefReturnValue.Continue;
