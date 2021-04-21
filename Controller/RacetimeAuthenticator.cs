@@ -16,10 +16,10 @@ namespace LiveSplit.Racetime.Controller
 {
     public enum AuthResult { Pending, Success, Failure, Cancelled, Stale }
 
-    internal class RacetimeAuthenticator
-    {        
+    public class RacetimeAuthenticator
+    {
         protected readonly IAuthentificationSettings s;
-        
+
         protected string Code { get; set; }
         private TcpListener localEndpoint;
         protected string RedirectUri
@@ -80,7 +80,7 @@ namespace LiveSplit.Racetime.Controller
             });
             return true;
         }
-        
+
 
         public RacetimeAuthenticator(IAuthentificationSettings s)
         {
@@ -88,8 +88,8 @@ namespace LiveSplit.Racetime.Controller
         }
 
         private readonly Regex parameterRegex = new Regex(@"(\w+)=([-_A-Z0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                
-        
+
+
         private static string ReadResponse(TcpClient client)
         {
             try
@@ -155,7 +155,7 @@ namespace LiveSplit.Racetime.Controller
                     Identity = GetUserInfo(s, AccessToken);
                     return Identity != null;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
 
                     if (ex.InnerException is SocketException)
@@ -224,7 +224,7 @@ namespace LiveSplit.Racetime.Controller
         }
 
         public void StopPendingAuthRequest()
-        {           
+        {
             IsAuthorizing = false;
         }
 
@@ -242,7 +242,7 @@ namespace LiveSplit.Racetime.Controller
         private async Task<int> TryGetAuthenticated()
         {
             string reqState, state, verifier = null, challenge, request, response;
-            Tuple<int, dynamic> result;            
+            Tuple<int, dynamic> result;
 
             Error = null;
             reqState = null;
@@ -306,15 +306,15 @@ namespace LiveSplit.Racetime.Controller
                 }
                 StopLocalEndpoint();
             }
-            catch(ObjectDisposedException)
+            catch (ObjectDisposedException)
             {
                 return 404;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Error = "Unknown Error";
                 StopLocalEndpoint();
-            }            
+            }
 
             return Error == null ? 200 : 500;
         }
@@ -359,7 +359,7 @@ namespace LiveSplit.Racetime.Controller
                 if (TryGetUserInfo())
                     goto success;
             }
-            catch(SocketException) { goto failure; }
+            catch (SocketException) { goto failure; }
             catch { }
 
             //2nd: if this fails, try to renew access 
@@ -368,7 +368,7 @@ namespace LiveSplit.Racetime.Controller
                 //if there is a refresh token
                 if (await TryRefreshAccess())
                     goto start;
-            
+
                 //or not
                 if (await TryGetAccess())
                     goto start;
@@ -379,13 +379,13 @@ namespace LiveSplit.Racetime.Controller
             try
             {
                 int errorcode = await TryGetAuthenticated();
-                switch(errorcode)
+                switch (errorcode)
                 {
                     case 403: goto cancelled;
                     case 200: goto start;
                     case 404: return AuthResult.Stale;
                     default: goto failure;
-                }                
+                }
             }
             catch { }
 
@@ -394,11 +394,11 @@ namespace LiveSplit.Racetime.Controller
                 goto failure;
             secondRun = true;
 
-            if(Error == null)
+            if (Error == null)
                 goto start;
 
 
-        failure:
+            failure:
             StopPendingAuthRequest();
             ResetTokens();
             return AuthResult.Failure;
@@ -418,7 +418,7 @@ namespace LiveSplit.Racetime.Controller
             {
                 var userdata = JSON.FromResponse(r);
                 return RTModelBase.Create<RacetimeUser>(userdata);
-            }            
+            }
         }
 
         public void UpdateUserInfo()
@@ -442,12 +442,12 @@ namespace LiveSplit.Racetime.Controller
                 await stream.WriteAsync(buf, 0, buf.Length);
                 stream.Close();
             }
-                
+
             try
             {
                 WebResponse tokenResponse = await tokenRequest.GetResponseAsync();
                 dynamic response = JSON.FromResponse(tokenResponse);
-                return new Tuple<int, dynamic>(200, response);                
+                return new Tuple<int, dynamic>(200, response);
             }
             catch (WebException ex)
             {
@@ -463,7 +463,7 @@ namespace LiveSplit.Racetime.Controller
                     {
                         return new Tuple<int, dynamic>(500, null);
                     }
-                }                
+                }
             }
             catch
             {
@@ -472,7 +472,7 @@ namespace LiveSplit.Racetime.Controller
 
             return new Tuple<int, dynamic>(500, null);
         }
-            
+
     }
 
 }

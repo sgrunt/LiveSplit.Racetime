@@ -8,8 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Dynamic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace LiveSplit.Racetime
@@ -18,7 +19,6 @@ namespace LiveSplit.Racetime
     {
         protected static readonly Uri BaseUri = new Uri($"{Properties.Resources.PROTOCOL_REST}://{Properties.Resources.DOMAIN}/");
         protected static string racesEndpoint => Properties.Resources.ENDPOINT_RACES;
-
         private static RacetimeAPI _instance;
         public static RacetimeAPI Instance
         {
@@ -47,7 +47,7 @@ namespace LiveSplit.Racetime
 
         public void Warn()
         {
-            
+
         }
 
         public void Create(ITimerModel model)
@@ -80,34 +80,70 @@ namespace LiveSplit.Racetime
                 Races = GetRacesFromServer().ToArray();
                 RacesRefreshedCallback?.Invoke(this);
             }
-            catch
-            {
-            }            
+            catch { }
         }
 
-        
+
         protected IEnumerable<Race> GetRacesFromServer()
         {
-            var data = JSON.FromUri(new Uri(BaseUri.AbsoluteUri + racesEndpoint));
-            var races = data.races;
+            var request = WebRequest.Create(new Uri(BaseUri.AbsoluteUri + racesEndpoint));
+            request.Headers.Add("Authorization", "Bearer " + Authenticator.AccessToken);
 
-            foreach (var r in races)
+            using (var response = request.GetResponse())
             {
-                var fulldata = JSON.FromUri(new Uri(BaseUri.AbsoluteUri + r.name + "/data"));
-                Race raceObj = RTModelBase.Create<Race>(fulldata);
-                yield return raceObj;
+                var data = JSON.FromResponse(response);
+
+                var races = data.races;
+                foreach (var r in races)
+                {
+                    Race raceObj;
+                    //if (Races == null)
+                    //{
+                    r.entrants = new List<dynamic>();
+                    raceObj = RTModelBase.Create<Race>(r);
+                    //}
+                    //else
+                    //{
+                    //    var fulldata = JSON.FromUri(new Uri(BaseUri.AbsoluteUri + r.name + "/data"));
+                    //    raceObj = RTModelBase.Create<Race>(fulldata);
+                    //}
+                    yield return raceObj;
+                }
+                yield break;
             }
-            yield break;
         }
 
-        
         public override IEnumerable<IRaceInfo> GetRaces()
         {
             return Races;
         }
 
+        Dictionary<string, Image> CategoryImagesCache = new Dictionary<string, Image>();
         public override Image GetGameImage(string id)
         {
+            try
+            {
+                foreach (var race in Races)
+                {
+                    if (race.Data.category.slug == id)
+                    {
+                        if (CategoryImagesCache.ContainsKey(id))
+                        {
+                            return CategoryImagesCache[id];
+                        }
+                        else
+                        {
+                            WebClient wc = new WebClient();
+                            byte[] bytes = wc.DownloadData(race.Data.category.image);
+                            MemoryStream ms = new MemoryStream(bytes);
+                            System.Drawing.Image img = System.Drawing.Image.FromStream(ms);
+                            CategoryImagesCache.Add(id, img);
+                            return img;
+                        }
+                    }
+                }
+            }
+            catch { }
             return null;
         }
     }
