@@ -26,7 +26,10 @@ namespace LiveSplit.Racetime.View
             Text = "Connecting to " + channelId.Substring(channelId.IndexOf('/') + 1);
             Channel.Connect(channelId);
             chatBox.LifeSpanHandler = new ChatBoxLifeSpanHandler();
-            chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken);
+            if (Channel.Token != null)
+            {
+                chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken);
+            }
             chatBox.AddressChanged += OnBrowserAddressChanged;
         }
         private int retries = 0;
@@ -42,7 +45,10 @@ namespace LiveSplit.Racetime.View
                 }
                 else
                 {
-                    chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken)));
+                    if (Channel.Token != null)
+                    {
+                        chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken)));
+                    }
                     Channel_RaceChanged(null, null);
                 }
                 if (LastRetry.AddSeconds(10) >= DateTime.Now)
@@ -75,8 +81,11 @@ namespace LiveSplit.Racetime.View
                             System.Threading.Thread.Sleep(3000);
                             if (retries <= 5)
                             {
-                                chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken)));
-                                chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                                if (Channel.Token != null)
+                                {
+                                    chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken)));
+                                    chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                                }
                             }
                         }).Start();
                     }
