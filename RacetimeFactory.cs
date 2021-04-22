@@ -28,7 +28,7 @@ namespace LiveSplit.Racetime
 
         public string UpdateName => "Racetime Integration";
 
-        public string XMLURL => "http://livesplit.org/update/Components/update.LiveSplit.Racetime.xml";
+        public string XMLURL => "http://livesplit.org/update/Components/update.LiveSplit.Racetime.v2.xml";
 
         public string UpdateURL => "http://livesplit.org/update/";
 
