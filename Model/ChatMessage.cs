@@ -17,7 +17,7 @@ namespace LiveSplit.Racetime.Model
             get
             {
                 try
-                {                    
+                {
                     return Data.message;
                 }
                 catch
@@ -68,7 +68,7 @@ namespace LiveSplit.Racetime.Model
                 {
                     return false;
                 }
-               
+
             }
         }
         public bool IsSystem
@@ -83,11 +83,11 @@ namespace LiveSplit.Racetime.Model
                 {
                     return false;
                 }
-                
+
             }
         }
-        
-        
+
+
 
     }
 
@@ -111,7 +111,7 @@ namespace LiveSplit.Racetime.Model
                 user = RacetimeUser.LiveSplit,
                 posted_at = DateTime.Now.ToString(),
                 highlight = important,
-                is_system = true                   
+                is_system = true
             };
             return Create<LiveSplitMessage>(dataroot);
         }
@@ -243,13 +243,39 @@ namespace LiveSplit.Racetime.Model
                     return "Error in the error message";
                 }
             }
-                
+
+        }
+    }
+    public class SplitMessage : ChatMessage
+    {
+        public override MessageType Type => MessageType.SplitUpdate;
+        public override string Message
+        {
+            get
+            {
+                try
+                {
+                    return Data.message_plain;
+                }
+                catch
+                {
+                    return Data.message;
+                }
+            }
+        }
+
+        public SplitUpdate SplitUpdate
+        {
+            get
+            {
+                return RTModelBase.Create<SplitUpdate>(Data);
+            }
         }
     }
     public class RaceMessage : ChatMessage
     {
         public override MessageType Type => MessageType.Race;
-        
+
         public override string Message
         {
             get

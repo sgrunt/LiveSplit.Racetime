@@ -123,6 +123,7 @@ namespace LiveSplit.Racetime.View
                     return;
                 }
             }
+            Channel.RemoveRaceComparisons();
             Channel.Authorized -= Channel_Authorized;
             Channel.RaceChanged -= Channel_RaceChanged;
             Channel.Disconnect();
