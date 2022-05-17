@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using LiveSplit.Model;
 using LiveSplit.Model.Comparisons;
 using LiveSplit.Model.Input;
+using LiveSplit.Options;
 using LiveSplit.Racetime.Model;
 using LiveSplit.Web;
 
@@ -321,9 +322,11 @@ namespace LiveSplit.Racetime.Controller
             UserStatus nu = GetPersonalStatus(msg.Race);
 
             if (msg.Race != null)
+            {
                 Race = msg.Race;
+                UpdateRaceComparisons(Race);
+            }
 
-            UpdateRaceComparisons(Race);
 
             //update only neccessary if the state of the player and/or the race has changed
             if ((r != nr) || (u != nu))
@@ -429,7 +432,7 @@ namespace LiveSplit.Racetime.Controller
                 foreach(var entrant in race.Entrants)
                 {
                     if (entrant.Name != Username)
-                        AddComparison(entrant.Name);
+                        AddComparison(entrant.FullName);
                 }
             }
             catch (Exception ex)
@@ -512,8 +515,14 @@ namespace LiveSplit.Racetime.Controller
             if (PersonalStatus == UserStatus.Racing)
             {
                 var split = Model.CurrentState.CurrentSplit;
-                string cmd = "{ \"action\": \"split\", \"data\": { \"split\":\"" + split.Name + "\", \"time\": \"-\"} }";
-                SendChannelCommand(cmd);
+                dynamic cmd = new DynamicJsonObject();
+                dynamic data = new DynamicJsonObject();
+                cmd.action = "split";
+                data.split = split.Name;
+                data.time = "-";
+                cmd.data = data;
+
+                SendChannelCommand(cmd.ToString());
             }
         }
 
@@ -525,10 +534,14 @@ namespace LiveSplit.Racetime.Controller
                 if (Model.CurrentState.CurrentSplitIndex > 0)
                 {
                     var split = Model.CurrentState.Run[Model.CurrentState.CurrentSplitIndex - 1];
-                    string is_finish = Model.CurrentState.CurrentSplitIndex >= Model.CurrentState.Run.Count ? "true" : "false";
-                    string timeRTA = timeFormatter.Format(split.SplitTime.RealTime);
-                    string cmd = "{ \"action\": \"split\", \"data\": { \"split\":\"" + split.Name + "\", \"time\":\"" + timeRTA + "\", \"is_finish\": " + is_finish + " } }";
-                    SendChannelCommand(cmd);
+                    dynamic cmd = new DynamicJsonObject();
+                    dynamic data = new DynamicJsonObject();
+                    cmd.action = "split";
+                    data.split = split.Name;
+                    data.is_finish = Model.CurrentState.CurrentSplitIndex >= Model.CurrentState.Run.Count ? true : false;
+                    data.time = timeFormatter.Format(split.SplitTime.RealTime);
+                    cmd.data = data;
+                    SendChannelCommand(cmd.ToString());
                 }
             }
             if (Model.CurrentState.CurrentSplitIndex >= Model.CurrentState.Run.Count && PersonalStatus == UserStatus.Racing)
@@ -602,27 +615,32 @@ namespace LiveSplit.Racetime.Controller
 
         private Regex cmdRegex = new Regex(@"^\.([a-z]+)\s*?(.+)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        public bool TryCreateCommand(ref string message)
+        public DynamicJsonObject CreateCommand(string message)
         {
+            dynamic command = new DynamicJsonObject();
+            var data = new Dictionary<string, dynamic>();
             Match m = cmdRegex.Match(message);
             if (m.Success)
             {
-                if (m.Groups.Count == 2 && m.Groups[1].Value.Trim().Length > 0)
-                {
-                    message = "{ \"action\": \"" + m.Groups[1].Value.ToLower().Trim() + "\" }";
-                }
-                else if (m.Groups.Count == 3)
-                {
-                    message = "{ \"action\": \"" + m.Groups[1].Value.ToLower().Trim() + "\", \"data\":{ \"" + m.Groups[1].Value.ToLower().Trim() + "\":\"" + m.Groups[2].Value.Trim() + "\" } }";
-                }
-                else
-                {
-                    return false;
-                }
+                string action = m.Groups[1].Value.ToLower().Trim();
+                command.action = action;
 
-                return true;
+                if (m.Groups.Count == 3 && m.Groups[2].Value.Trim().Length > 0)
+                {
+                    data[action] = m.Groups[2].Value.Trim();
+                    command.data = data;
+                }
             }
-            return false;
+            else
+            {
+                // Default to sending a message action
+                command.action = "message";
+                data["message"] = message;
+                data["guid"] = Guid.NewGuid().ToString();
+                command.data = data;
+            }
+
+            return command;
         }
 
         public async void SendChannelCommand(string data)
@@ -648,8 +666,8 @@ namespace LiveSplit.Racetime.Controller
             message = message.Trim();
             message = message.Replace("\"", "\\\"");
 
-            string data = TryCreateCommand(ref message) ? message : "{ \"action\": \"message\", \"data\": { \"message\":\"" + message + "\", \"guid\":\"" + Guid.NewGuid().ToString() + "\" } }";
-            SendChannelCommand(data);
+            DynamicJsonObject cmd = CreateCommand(message);
+            SendChannelCommand(cmd.ToString());
         }
 
         public void SendSystemMessage(string message, bool important = false)
