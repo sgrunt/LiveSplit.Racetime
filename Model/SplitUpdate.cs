@@ -39,11 +39,11 @@ namespace LiveSplit.Racetime.Model
             }
         }
 
-        public string UserName
+        public string UserID
         {
             get
             {
-                return Data.username;
+                return Data.user_id;
             }
         }
     }

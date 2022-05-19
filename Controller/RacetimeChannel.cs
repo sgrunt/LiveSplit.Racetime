@@ -45,6 +45,7 @@ namespace LiveSplit.Racetime.Controller
         public RacetimeSettings Settings { get; set; }
         public string OpenedBy { get; set; }
         public string Username { get; set; }
+        public string UserID { get; set; }
         public bool Invited = false;
         public TimeSpan Offset { get; set; }
         public RacetimeAuthenticator Token { get; set; }
@@ -181,6 +182,7 @@ namespace LiveSplit.Racetime.Controller
 
                 AuthResult r = await Authenticator.Authorize();
                 Username = Authenticator.Identity?.Name;
+                UserID = Authenticator.Identity?.ID;
                 switch (r)
                 {
                     case AuthResult.Success:
@@ -400,12 +402,20 @@ namespace LiveSplit.Racetime.Controller
         private void UpdateSplitComparison(SplitMessage msg)
         {
             SplitUpdate split = msg.SplitUpdate;
-            if (split.UserName == Username)
+            if (split.UserID == UserID)
             {
                 return;
             }
+
             var run = Model.CurrentState.Run;
-            var comparisonName = RacetimeComparisonGenerator.GetRaceComparisonName(split.UserName);
+
+            var user = Race?.Entrants?.FirstOrDefault(x => x.ID == split.UserID);
+            if (user == null)
+            {
+                return;
+            }
+
+            var comparisonName = RacetimeComparisonGenerator.GetRaceComparisonName(user.FullName);
             var segment = run.FirstOrDefault(x => x.Name.Trim().ToLower() == split.SplitName && x.Comparisons[comparisonName][TimingMethod.RealTime] == null);
 
             if (split.IsUndo)
