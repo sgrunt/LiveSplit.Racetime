@@ -13,6 +13,7 @@ using LiveSplit.Model.Comparisons;
 using LiveSplit.Model.Input;
 using LiveSplit.Options;
 using LiveSplit.Racetime.Model;
+using LiveSplit.TimeFormatters;
 using LiveSplit.Web;
 
 namespace LiveSplit.Racetime.Controller
