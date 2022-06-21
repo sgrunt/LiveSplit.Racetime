@@ -43,29 +43,6 @@ namespace LiveSplit.Racetime
 
         public void Join(ITimerModel model, string id)
         {
-            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Components/libcef.zip"))
-            {
-                try
-                {
-                    System.IO.Compression.ZipFile.ExtractToDirectory(AppDomain.CurrentDomain.BaseDirectory + "Components/libcef.zip", AppDomain.CurrentDomain.BaseDirectory + "Components/");
-                }
-                catch { }
-                if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Components/libcef.dll"))
-                {
-                    File.Delete(Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "Components/", "libcef.zip"));
-                }
-                MessageBox.Show("LiveSplit must restart to use Racetime.gg", "Must Restart", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                try
-                {
-                    Application.Restart();
-                }
-                catch { }
-                try
-                {
-                    System.Environment.Exit(0);
-                }
-                catch { }
-            }
             var channel = new RacetimeChannel(model.CurrentState, model, (RacetimeSettings)Settings);
             _ = new ChannelForm(channel, id, model.CurrentState.LayoutSettings.AlwaysOnTop);
         }

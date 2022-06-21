@@ -141,9 +141,7 @@ del cef_extensions.pak
 del devtools_resources.pak
 del d3dcompiler_47.dll
 del libEGL.dll
-del libGLESv2.dll
-PowerShell.exe Invoke-Command -ScriptBlock { Compress-Archive -Path libcef.dll -DestinationPath libcef.zip }
-del libcef.dll</PostBuildEvent>
+del libGLESv2.dll</PostBuildEvent>
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
