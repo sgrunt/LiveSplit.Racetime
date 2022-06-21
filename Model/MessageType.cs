@@ -14,6 +14,7 @@ namespace LiveSplit.Racetime.Model
         Race,
         System,
         LiveSplit,
+        SplitUpdate,
         Bot
     }
 }

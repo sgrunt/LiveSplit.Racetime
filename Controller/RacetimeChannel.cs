@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using LiveSplit.Model;
 using LiveSplit.Model.Comparisons;
 using LiveSplit.Model.Input;
+using LiveSplit.Options;
 using LiveSplit.Racetime.Model;
 using LiveSplit.Web;
 
@@ -44,6 +45,7 @@ namespace LiveSplit.Racetime.Controller
         public RacetimeSettings Settings { get; set; }
         public string OpenedBy { get; set; }
         public string Username { get; set; }
+        public string UserID { get; set; }
         public bool Invited = false;
         public TimeSpan Offset { get; set; }
         public RacetimeAuthenticator Token { get; set; }
@@ -139,15 +141,23 @@ namespace LiveSplit.Racetime.Controller
 
                 if (racemessage != null)
                 {
-                    if (racemessage.Type != MessageType.Race)
+                    if (racemessage.Type == MessageType.SplitUpdate)
+                    {
+                        UpdateSplitComparison((SplitMessage)racemessage);
+                        MessageReceived?.Invoke(this, chatmessages);
+                    }
+                    else if (racemessage.Type == MessageType.Race)
+                    {
+                        if (!Versions.Contains(racemessage.Data.version))
+                        {
+                            Versions.Add(racemessage.Data.version);
+                            UpdateRaceData((RaceMessage)racemessage);
+                            MessageReceived?.Invoke(this, chatmessages);
+                        }
+                    }
+                    else
                     {
                         return false;
-                    }
-                    if (!Versions.Contains(racemessage.Data.version))
-                    {
-                        Versions.Add(racemessage.Data.version);
-                        UpdateRaceData((RaceMessage)racemessage);
-                        MessageReceived?.Invoke(this, chatmessages);
                     }
                 }
             }
@@ -172,6 +182,7 @@ namespace LiveSplit.Racetime.Controller
 
                 AuthResult r = await Authenticator.Authorize();
                 Username = Authenticator.Identity?.Name;
+                UserID = Authenticator.Identity?.ID;
                 switch (r)
                 {
                     case AuthResult.Success:
@@ -209,7 +220,7 @@ namespace LiveSplit.Racetime.Controller
                     goto cleanup;
                 }
 
-                //initial command to sync LiveSplit 
+                //initial command to sync LiveSplit
                 if (ws.State == WebSocketState.Open)
                 {
 
@@ -313,7 +324,11 @@ namespace LiveSplit.Racetime.Controller
             UserStatus nu = GetPersonalStatus(msg.Race);
 
             if (msg.Race != null)
+            {
                 Race = msg.Race;
+                UpdateRaceComparisons(Race);
+            }
+
 
             //update only neccessary if the state of the player and/or the race has changed
             if ((r != nr) || (u != nu))
@@ -384,6 +399,93 @@ namespace LiveSplit.Racetime.Controller
             GoalChanged?.Invoke(this, new EventArgs());
         }
 
+        private void UpdateSplitComparison(SplitMessage msg)
+        {
+            SplitUpdate split = msg.SplitUpdate;
+            if (split.UserID == UserID)
+            {
+                return;
+            }
+
+            var run = Model.CurrentState.Run;
+
+            var user = Race?.Entrants?.FirstOrDefault(x => x.ID == split.UserID);
+            if (user == null)
+            {
+                return;
+            }
+
+            var comparisonName = RacetimeComparisonGenerator.GetRaceComparisonName(user.FullName);
+            var segment = run.FirstOrDefault(x => x.Name.Trim().ToLower() == split.SplitName && x.Comparisons[comparisonName][TimingMethod.RealTime] == null);
+
+            if (split.IsUndo)
+            {
+                segment = run.LastOrDefault(x => x.Name.Trim().ToLower() == split.SplitName && x.Comparisons[comparisonName][TimingMethod.RealTime] != null);
+            }
+            if (split.IsFinish)
+            {
+                segment = run.Last();
+            }
+
+            if (segment != null)
+            {
+                var newTime = new Time(segment.Comparisons[comparisonName]);
+                newTime[TimingMethod.RealTime] = split.SplitTime;
+                segment.Comparisons[comparisonName] = newTime;
+            }
+        }
+
+        private void UpdateRaceComparisons(Race race)
+        {
+            try
+            {
+                foreach(var entrant in race.Entrants)
+                {
+                    if (entrant.Name != Username)
+                        AddComparison(entrant.FullName);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
+        }
+
+        protected void AddComparison(string userName)
+        {
+            var run = Model.CurrentState.Run;
+            var comparisonName = RacetimeComparisonGenerator.GetRaceComparisonName(userName);
+            if (run.ComparisonGenerators.All(x => x.Name != comparisonName))
+            {
+                CompositeComparisons.AddShortComparisonName(comparisonName, Username);
+                run.ComparisonGenerators.Add(new RacetimeComparisonGenerator(comparisonName));
+            }
+        }
+
+        public void RemoveRaceComparisons()
+        {
+            if (RacetimeComparisonGenerator.IsRaceComparison(Model.CurrentState.CurrentComparison))
+                Model.CurrentState.CurrentComparison = Run.PersonalBestComparisonName;
+
+            for (var ind = 0; ind < Model.CurrentState.Run.ComparisonGenerators.Count; ind++)
+            {
+                if (RacetimeComparisonGenerator.IsRaceComparison(Model.CurrentState.Run.ComparisonGenerators[ind].Name))
+                {
+                    Model.CurrentState.Run.ComparisonGenerators.RemoveAt(ind);
+                    ind--;
+                }
+            }
+            foreach (var segment in Model.CurrentState.Run)
+            {
+                for (var ind = 0; ind < segment.Comparisons.Count; ind++)
+                {
+                    var comparison = segment.Comparisons.ElementAt(ind);
+                    if (RacetimeComparisonGenerator.IsRaceComparison(comparison.Key))
+                        segment.Comparisons[comparison.Key] = default(Time);
+                }
+            }
+        }
+
         public IEnumerable<ChatMessage> Parse(dynamic m)
         {
             switch (m.type)
@@ -393,6 +495,9 @@ namespace LiveSplit.Racetime.Controller
                     break;
                 case "race.data":
                     yield return RTModelBase.Create<RaceMessage>(m.race);
+                    break;
+                case "race.split":
+                    yield return RTModelBase.Create<SplitMessage>(m.split);
                     break;
                 case "livesplit":
                     yield return RTModelBase.Create<LiveSplitMessage>(m.message);
@@ -414,12 +519,41 @@ namespace LiveSplit.Racetime.Controller
             if (Model.CurrentState.CurrentSplitIndex == Model.CurrentState.Run.Count - 1)
             {
                 if (PersonalStatus != UserStatus.Racing)
-                    SendChannelMessage(".undone");
+                    Undone();
+            }
+
+            if (PersonalStatus == UserStatus.Racing)
+            {
+                var split = Model.CurrentState.CurrentSplit;
+                dynamic cmd = new DynamicJsonObject();
+                dynamic data = new DynamicJsonObject();
+                cmd.action = "split";
+                data.split = split.Name;
+                data.time = "-";
+                cmd.data = data;
+
+                SendChannelCommand(cmd.ToString());
             }
         }
 
         private void State_OnSplit(object sender, EventArgs e)
         {
+            var timeFormatter = new RegularTimeFormatter(TimeAccuracy.Hundredths);
+            if (PersonalStatus == UserStatus.Racing)
+            {
+                if (Model.CurrentState.CurrentSplitIndex > 0)
+                {
+                    var split = Model.CurrentState.Run[Model.CurrentState.CurrentSplitIndex - 1];
+                    dynamic cmd = new DynamicJsonObject();
+                    dynamic data = new DynamicJsonObject();
+                    cmd.action = "split";
+                    data.split = split.Name;
+                    data.is_finish = Model.CurrentState.CurrentSplitIndex >= Model.CurrentState.Run.Count ? true : false;
+                    data.time = timeFormatter.Format(split.SplitTime.RealTime);
+                    cmd.data = data;
+                    SendChannelCommand(cmd.ToString());
+                }
+            }
             if (Model.CurrentState.CurrentSplitIndex >= Model.CurrentState.Run.Count && PersonalStatus == UserStatus.Racing)
                 SendChannelMessage(".done");
         }
@@ -491,39 +625,37 @@ namespace LiveSplit.Racetime.Controller
 
         private Regex cmdRegex = new Regex(@"^\.([a-z]+)\s*?(.+)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        public bool TryCreateCommand(ref string message)
+        public DynamicJsonObject CreateCommand(string message)
         {
+            dynamic command = new DynamicJsonObject();
+            var data = new Dictionary<string, dynamic>();
             Match m = cmdRegex.Match(message);
             if (m.Success)
             {
-                if (m.Groups.Count == 2 && m.Groups[1].Value.Trim().Length > 0)
-                {
-                    message = "{ \"action\": \"" + m.Groups[1].Value.ToLower().Trim() + "\" }";
-                }
-                else if (m.Groups.Count == 3)
-                {
-                    message = "{ \"action\": \"" + m.Groups[1].Value.ToLower().Trim() + "\", \"data\":{ \"" + m.Groups[1].Value.ToLower().Trim() + "\":\"" + m.Groups[2].Value.Trim() + "\" } }";
-                }
-                else
-                {
-                    return false;
-                }
+                string action = m.Groups[1].Value.ToLower().Trim();
+                command.action = action;
 
-                return true;
+                if (m.Groups.Count == 3 && m.Groups[2].Value.Trim().Length > 0)
+                {
+                    data[action] = m.Groups[2].Value.Trim();
+                    command.data = data;
+                }
             }
-            return false;
+            else
+            {
+                // Default to sending a message action
+                command.action = "message";
+                data["message"] = message;
+                data["guid"] = Guid.NewGuid().ToString();
+                command.data = data;
+            }
+
+            return command;
         }
 
-        public async void SendChannelMessage(string message)
+        public async void SendChannelCommand(string data)
         {
-
-            message = message.Trim();
-            message = message.Replace("\"", "\\\"");
-
-
-            string data = TryCreateCommand(ref message) ? message : "{ \"action\": \"message\", \"data\": { \"message\":\"" + message + "\", \"guid\":\"" + Guid.NewGuid().ToString() + "\" } }";
             RawMessageReceived?.Invoke(this, data);
-
             ArraySegment<byte> bytesToSend = new ArraySegment<byte>(Encoding.UTF8.GetBytes(data));
 
             if (IsConnected && ws != null)
@@ -535,9 +667,17 @@ namespace LiveSplit.Racetime.Controller
                 }
                 catch
                 {
-
                 }
             }
+        }
+
+        public void SendChannelMessage(string message)
+        {
+            message = message.Trim();
+            message = message.Replace("\"", "\\\"");
+
+            DynamicJsonObject cmd = CreateCommand(message);
+            SendChannelCommand(cmd.ToString());
         }
 
         public void SendSystemMessage(string message, bool important = false)

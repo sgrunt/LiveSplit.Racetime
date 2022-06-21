@@ -72,6 +72,7 @@
     <Compile Include="Controller\RacetimeAuthenticator.cs" />
     <Compile Include="Controller\RTAuthentificationSettings.cs" />
     <Compile Include="Model\RTModelBase.cs" />
+    <Compile Include="Model\SplitUpdate.cs" />
     <Compile Include="RacetimeAPI.cs" />
     <Compile Include="Model\MessageType.cs" />
     <Compile Include="Model\ChatMessage.cs" />
@@ -86,6 +87,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RacetimeComparisonGenerator.cs" />
     <Compile Include="RacetimeFactory.cs" />
     <Compile Include="RacetimeSettings.cs" />
     <Compile Include="RacetimeSettingsControl.cs">

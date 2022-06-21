@@ -23,6 +23,20 @@ namespace LiveSplit.Racetime.Model
         {
             return Name.ToLower() == ((RacetimeUser)obj)?.Name?.ToLower();
         }
+        public string ID
+        {
+            get
+            {
+                return Data.id;
+            }
+        }
+        public string FullName
+        {
+            get
+            {
+                return Data.full_name;
+            }
+        }
         public string Name
         {
             get
@@ -64,7 +78,7 @@ namespace LiveSplit.Racetime.Model
                         case "bot": r |= UserRole.Bot; break;
                         case "system": r |= UserRole.System; break;
                         case "anonymous": r |= UserRole.Anonymous; break;
-                    } 
+                    }
                 }
                 return r;
             }
@@ -195,7 +209,7 @@ namespace LiveSplit.Racetime.Model
         public static RacetimeUser LiveSplit = CreateBot("LiveSplit", "system staff moderator monitor");
         public static RacetimeUser Anonymous = CreateBot("Anonymous", "anonymous");
 
-        
+
         public static RacetimeUser CreateBot(string botname, string flairs)
         {
             var dataroot = new
