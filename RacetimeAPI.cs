@@ -1,4 +1,6 @@
-﻿using LiveSplit.Model;
+﻿using CefSharp;
+using CefSharp.WinForms;
+using LiveSplit.Model;
 using LiveSplit.Racetime.Controller;
 using LiveSplit.Racetime.Model;
 using LiveSplit.Racetime.View;
@@ -12,6 +14,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace LiveSplit.Racetime
 {
@@ -40,9 +43,31 @@ namespace LiveSplit.Racetime
 
         public void Join(ITimerModel model, string id)
         {
-
+            if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Components/libcef.zip"))
+            {
+                try
+                {
+                    System.IO.Compression.ZipFile.ExtractToDirectory(AppDomain.CurrentDomain.BaseDirectory + "Components/libcef.zip", AppDomain.CurrentDomain.BaseDirectory + "Components/");
+                }
+                catch { }
+                if (File.Exists(AppDomain.CurrentDomain.BaseDirectory + "Components/libcef.dll"))
+                {
+                    File.Delete(Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "Components/", "libcef.zip"));
+                }
+                MessageBox.Show("LiveSplit must restart to use Racetime.gg", "Must Restart", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                try
+                {
+                    Application.Restart();
+                }
+                catch { }
+                try
+                {
+                    System.Environment.Exit(0);
+                }
+                catch { }
+            }
             var channel = new RacetimeChannel(model.CurrentState, model, (RacetimeSettings)Settings);
-            var form = new ChannelForm(channel, id, model.CurrentState.LayoutSettings.AlwaysOnTop);
+            _ = new ChannelForm(channel, id, model.CurrentState.LayoutSettings.AlwaysOnTop);
         }
 
         public void Warn()
@@ -97,16 +122,8 @@ namespace LiveSplit.Racetime
                 foreach (var r in races)
                 {
                     Race raceObj;
-                    //if (Races == null)
-                    //{
                     r.entrants = new List<dynamic>();
                     raceObj = RTModelBase.Create<Race>(r);
-                    //}
-                    //else
-                    //{
-                    //    var fulldata = JSON.FromUri(new Uri(BaseUri.AbsoluteUri + r.name + "/data"));
-                    //    raceObj = RTModelBase.Create<Race>(fulldata);
-                    //}
                     yield return raceObj;
                 }
                 yield break;

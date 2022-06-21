@@ -1,9 +1,11 @@
 ﻿using CefSharp;
 using CefSharp.Handler;
+using CefSharp.WinForms;
 using DarkUI.Forms;
 using LiveSplit.Racetime.Controller;
 using LiveSplit.Racetime.Model;
 using System;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -20,6 +22,15 @@ namespace LiveSplit.Racetime.View
             Channel.RaceChanged += Channel_RaceChanged;
             Channel.Authorized += Channel_Authorized;
             InitializeComponent();
+            var settings = new CefSettings();
+            settings.CefCommandLineArgs.Add("no-proxy-server");
+            settings.SetOffScreenRenderingBestPerformanceArgs();
+            settings.LogSeverity = LogSeverity.Disable;
+            try
+            {
+                Cef.Initialize(settings);
+            }
+            catch { }
             TopMost = alwaysOnTop;
             Show();
             chatBox.Hide();
@@ -83,15 +94,18 @@ namespace LiveSplit.Racetime.View
                             {
                                 if (Channel.Token != null)
                                 {
-                                    chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken)));
-                                    chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                                    if (IsHandleCreated)
+                                    {
+                                        chatBox.BeginInvoke((Action)(() => chatBox.RequestHandler = new BearerAuthRequestHandler(Channel.Token.AccessToken)));
+                                        chatBox.BeginInvoke((Action)(() => chatBox.Load(Channel.FullWebRoot + Channel.Race.Id + "/livesplit")));
+                                    }
                                 }
                             }
                         }).Start();
                     }
                 }
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private void Channel_Authorized(object sender, EventArgs e)
@@ -156,7 +170,8 @@ namespace LiveSplit.Racetime.View
             if (!string.IsNullOrEmpty(_token))
             {
                 var headers = request.Headers;
-                if (request.Url.ToLower().Contains(Properties.Resources.PROTOCOL_REST.ToLower() + "://" + Properties.Resources.DOMAIN.ToLower()))
+                Regex rg = new Regex(Properties.Resources.PROTOCOL_REST.ToLower() + @":\/\/" + Properties.Resources.DOMAIN.ToLower() + @"/.*\/", RegexOptions.IgnoreCase);
+                if (rg.Match(request.Url.ToLower()).Success)
                     headers["Authorization"] = $"Bearer {_token}";
                 request.Headers = headers;
                 return CefReturnValue.Continue;
