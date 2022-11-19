@@ -458,7 +458,7 @@ namespace LiveSplit.Racetime.Controller
             var comparisonName = RacetimeComparisonGenerator.GetRaceComparisonName(userName);
             if (run.ComparisonGenerators.All(x => x.Name != comparisonName))
             {
-                CompositeComparisons.AddShortComparisonName(comparisonName, Username);
+                CompositeComparisons.AddShortComparisonName(comparisonName, userName);
                 run.ComparisonGenerators.Add(new RacetimeComparisonGenerator(comparisonName));
             }
         }
